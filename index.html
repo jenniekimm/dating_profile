@@ -52,7 +52,7 @@
                 setPhotoPreviews(images); // 미리보기 상태 업데이트
                 
                 // ★ 중요: 실제 전송할 데이터(form state)에도 selectedFiles 배열을 저장해야 합니다.
-                // 예: setFormData({ ...formData, photos: selectedFiles });
+                setFormData({ ...formData, photo: images });
               });
             };
 
