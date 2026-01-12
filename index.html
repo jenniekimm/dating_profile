@@ -22,7 +22,7 @@
           const [formData, setFormData] = useState({
             name: '', age: '', location: '', occupation: '', specs: '', photo: null
           });
-          const [photoPreview, setPhotoPreview] = useState(null);
+          const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
           const [loading, setLoading] = useState(false);
           const [status, setStatus] = useState({ type: '', message: '' });
 
@@ -34,19 +34,27 @@
             setFormData(prev => ({ ...prev, [name]: value }));
           };
 
-          const handlePhotoChange = (e) => {
-            const file = e.target.files[0];
-            if (file) {
-              if (file.size > 5 * 1024 * 1024) {
-                setStatus({ type: 'error', message: '사진 크기는 5MB 이하여야 합니다.' });
-                return;
-              }
-              setFormData(prev => ({ ...prev, photo: file }));
-              const reader = new FileReader();
-              reader.onloadend = () => setPhotoPreview(reader.result);
-              reader.readAsDataURL(file);
-            }
-          };
+          const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+              const files = e.target.files;
+              if (!files || files.length === 0) return;
+            
+              // 최대 2장까지만 자르기
+              const selectedFiles = Array.from(files).slice(0, 2);
+            
+              // 파일을 읽어서 미리보기 URL 생성 (비동기 처리)
+              Promise.all(selectedFiles.map(file => {
+                return new Promise<string>((resolve) => {
+                  const reader = new FileReader();
+                  reader.onloadend = () => resolve(reader.result as string);
+                  reader.readAsDataURL(file);
+                });
+              })).then(images => {
+                setPhotoPreviews(images); // 미리보기 상태 업데이트
+                
+                // ★ 중요: 실제 전송할 데이터(form state)에도 selectedFiles 배열을 저장해야 합니다.
+                // 예: setFormData({ ...formData, photos: selectedFiles });
+              });
+            };
 
           const convertToBase64 = (file) => {
             return new Promise((resolve, reject) => {
