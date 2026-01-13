@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>소개팅 프로필 등록</title>
+    <title>소개팅 웨이팅 리스트</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
@@ -68,7 +68,7 @@
 
           const handleSubmit = async () => {
             if (!formData.name || !formData.age || !formData.location || !formData.occupation) {
-              setStatus({ type: 'error', message: '필수 항목을 모두 입력해주세요.' });
+              setStatus({ type: 'error', message: '필수 항목을 모두 입력해주세요. 나이는 숫자로!' });
               return;
             }
             setLoading(true);
@@ -118,7 +118,7 @@
                     </div>
                     
                     <h1 className="text-4xl font-bold text-gray-800 mb-4">등록 완료</h1>
-                    <p className="text-xl text-gray-600 mb-8">프로필이 성공적으로 등록되었습니다!</p>
+                    <p className="text-xl text-gray-600 mb-8">프로필 받았슈</p>
                     
                     <div className="bg-red-50 border-2 border-red-300 rounded-lg p-6 mb-6">
                       <div className="flex items-start gap-3">
@@ -126,23 +126,22 @@
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                         </svg>
                         <div className="text-left">
-                          <p className="text-red-800 font-bold text-lg mb-2">⚠️ 개인정보 보호 경고</p>
+                          <p className="text-red-800 font-bold text-lg mb-2"> 상대방한테 사진 보내기 전에 연락하겠삼</p>
                           <p className="text-red-700 text-base font-semibold">
-                            유출 시 2026년 성과급 전액으로 보상하겠음
+                            유출 시 삼전 퇴사 후 올해 성과급 전액으로 보상하겠음
                           </p>
                         </div>
                       </div>
                     </div>
 
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-                      <p className="text-gray-700 mb-4">📈 참고자료</p>
+                      <p className="text-gray-700 mb-4">📈</p>
                       <a 
-                        href="https://www.news21tongsin.co.kr/news/280216#:~:text=%EA%B9%80%EC%9A%B4%ED%98%B8%20IBK%ED%88%AC%EC%9E%90%EC%A6%9D%EA%B6%8C%20%EC%97%B0%EA%B5%AC%EC%9B%90%EC%9D%80%2023%EC%9D%BC%20%EB%B3%B4%EA%B3%A0%EC%84%9C%EC%97%90%EC%84%9C%20%60%60%EB%A9%94%EB%AA%A8%EB%A6%AC%20%EC%97%85%ED%99%A9,%EC%9C%A0%EC%A7%80%ED%95%98%EA%B3%A0%20%EB%AA%A9%ED%91%9C%EC%A3%BC%EA%B0%80%EB%A5%BC%20%EA%B8%B0%EC%A1%B4%2011%EB%A7%8C%EC%9B%90%EC%97%90%EC%84%9C%2014%EB%A7%8C%EC%9B%90%EC%9C%BC%EB%A1%9C%20%EC%83%81%ED%96%A5%20%EC%A1%B0%EC%A0%95%ED%96%88%EB%8B%A4."
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-blue-600 hover:text-blue-800 underline font-medium text-base"
                       >
-                        "삼성전자, 2026년 영업이익 67조 전망"…IBK투자증권, 목표가 14만원 상향
+                        저장장소: 내 구글 드라이브ㅠ
                       </a>
                     </div>
 
@@ -156,7 +155,7 @@
                       }}
                       className="mt-8 px-8 py-3 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-lg font-semibold hover:from-pink-600 hover:to-purple-600 transition-all"
                     >
-                      새 프로필 등록하기
+                      새로 등록하기
                     </button>
                   </div>
                 </div>
@@ -170,7 +169,7 @@
                 <div className="bg-white rounded-2xl shadow-xl p-8">
                   <div className="text-center mb-8">
                     <h1 className="text-3xl font-bold text-gray-800 mb-2">💕 소개팅 프로필 등록</h1>
-                    <p className="text-gray-600">당신의 매력을 보여주세요!</p>
+                    <p className="text-gray-600">어필하소</p>
                   </div>
 
                   {status.message && (
@@ -215,21 +214,21 @@
                           </label>
                         </div>
                       </div>
-                      <p className="text-sm text-gray-500 mt-3 text-center">(선택사항 - 각 5MB 이하)</p>
+                      <p className="text-sm text-gray-500 mt-3 text-center">(각 5MB 이하...저장공간 이슈ㅜ)</p>
                     </div>
 
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        이름 <span className="text-red-500">*</span>
+                        주선자 <span className="text-red-500">*</span>
                       </label>
                       <input type="text" name="name" value={formData.name} onChange={handleChange}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-400 focus:border-transparent outline-none"
-                        placeholder="홍길동" />
+                        placeholder="본인이면 본인 이름 쓰소" />
                     </div>
 
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        나이 <span className="text-red-500">*</span>
+                        만나이!!!!!!!!! <span className="text-red-500">*</span>
                       </label>
                       <input type="number" name="age" value={formData.age} onChange={handleChange}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-400 focus:border-transparent outline-none"
@@ -242,7 +241,7 @@
                       </label>
                       <input type="text" name="location" value={formData.location} onChange={handleChange}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-400 focus:border-transparent outline-none"
-                        placeholder="서울시 강남구" />
+                        placeholder="어디사세유" />
                     </div>
 
                     <div>
@@ -255,23 +254,23 @@
                     </div>
 
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">기타 스펙 / 자기소개</label>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2"> 자기소개랑 원하는 타입</label>
                       <textarea name="specs" value={formData.specs} onChange={handleChange} rows="4"
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-400 focus:border-transparent outline-none resize-none"
-                        placeholder="취미, 특기, MBTI, 학력, 키, 체형 등"></textarea>
+                        placeholder="취미, 특기, MBTI, 학력, 키 등"></textarea>
                     </div>
 
                     <button onClick={handleSubmit} disabled={loading}
                       className={`w-full py-4 rounded-lg font-semibold text-white transition-all transform ${
                         loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 hover:scale-[1.02]'
                       }`}>
-                      {loading ? '등록 중...' : '프로필 등록하기'}
+                      {loading ? '등록 중...무료 서비스라 쫌 걸림^__^' : '프로필 등록하기'}
                     </button>
                   </div>
 
                   <div className="mt-6 p-4 bg-blue-50 rounded-lg">
                     <p className="text-sm text-blue-800">
-                      <strong>📝 설정:</strong> 코드에서 SCRIPT_URL을 수정하세요.
+                      <strong>📝 피곤하다:</strong> 나 오늘 열시에 퇴근함ㅜ
                     </p>
                   </div>
                 </div>
