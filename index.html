@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>소개팅 웨이팅 리스트</title>
+    <title>소개팅 프로필 등록</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
@@ -20,28 +20,45 @@
 
         function App() {
           const [currentPage, setCurrentPage] = useState('form'); // 'form' or 'success'
-          const [formData, setFormData] = useState({
-            name: '', age: '', location: '', occupation: '', specs: '', 
+          const SHEET_COLUMNS = [
+            '사진2', '이름', '추천인', '연락처', '나이(년생으로 통일)',
+            '지역', '직업', '엠비티아이', '자기소개', '선호스타일'
+          ];
+          const GOOGLE_SHEET_ID = '1qLLkvdPdEmCbYh_1FvXfLDKvMp9WoWYpryQ5RB7ks8A';
+          const GOOGLE_SHEET_URL = 'https://docs.google.com/spreadsheets/d/1qLLkvdPdEmCbYh_1FvXfLDKvMp9WoWYpryQ5RB7ks8A/edit';
+          const GOOGLE_SHEET_NAME = '프로필';
+          const createInitialFormData = () => ({
+            name: '', referrer: '', contact: '', birthYear: '', location: '',
+            occupation: '', mbti: '', intro: '', preferredStyle: '',
             photo1: null, photo2: null
+          });
+          const [formData, setFormData] = useState({
+            ...createInitialFormData()
           });
           const [photoPreview1, setPhotoPreview1] = useState(null);
           const [photoPreview2, setPhotoPreview2] = useState(null);
           const [loading, setLoading] = useState(false);
           const [status, setStatus] = useState({ type: '', message: '' });
 
-          // 🔥 여기에 Google Apps Script URL 입력!
+          // Google Apps Script 배포 URL
           const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzstOsD_2BHpvIijtxQMtgwl7A8pl06KtGitd8WjLSviUFknmOocLAPRxBOAWuAdQM3/exec';
 
           const handleChange = (e) => {
             const { name, value } = e.target;
-            setFormData(prev => ({ ...prev, [name]: value }));
+            setFormData(prev => ({ ...prev, [name]: name === 'mbti' ? value.toUpperCase() : value }));
           };
 
           const handlePhotoChange = (e, photoNumber) => {
             const file = e.target.files[0];
             if (file) {
+              if (!file.type.startsWith('image/')) {
+                setStatus({ type: 'error', message: '사진 파일만 업로드할 수 있습니다.' });
+                e.target.value = '';
+                return;
+              }
               if (file.size > 5 * 1024 * 1024) {
                 setStatus({ type: 'error', message: '사진 크기는 5MB 이하여야 합니다.' });
+                e.target.value = '';
                 return;
               }
               
@@ -66,9 +83,48 @@
             });
           };
 
+          const compactText = (value) => String(value || '').trim().replace(/[ \t]+/g, ' ');
+          const multilineText = (value) => String(value || '').trim().replace(/\r\n/g, '\n');
+
+          const normalizeBirthYear = (value) => {
+            const match = String(value || '').match(/\d{4}/);
+            if (!match) return '';
+            const year = Number(match[0]);
+            const currentYear = new Date().getFullYear();
+            if (year < 1900 || year > currentYear) return '';
+            return `${year}년생`;
+          };
+
           const handleSubmit = async () => {
-            if (!formData.name || !formData.age || !formData.location || !formData.occupation) {
-              setStatus({ type: 'error', message: '필수 항목을 모두 입력해주세요. 나이는 숫자로!' });
+            const cleanedData = {
+              name: compactText(formData.name),
+              referrer: compactText(formData.referrer),
+              contact: compactText(formData.contact),
+              birthYear: normalizeBirthYear(formData.birthYear),
+              location: compactText(formData.location),
+              occupation: compactText(formData.occupation),
+              mbti: compactText(formData.mbti).toUpperCase(),
+              intro: multilineText(formData.intro),
+              preferredStyle: multilineText(formData.preferredStyle)
+            };
+
+            const requiredFields = [
+              ['name', '이름'], ['referrer', '추천인'], ['contact', '연락처'],
+              ['location', '지역'], ['occupation', '직업'],
+              ['mbti', '엠비티아이'], ['intro', '자기소개'], ['preferredStyle', '선호스타일']
+            ];
+            const missingField = requiredFields.find(([key]) => !cleanedData[key]);
+
+            if (missingField) {
+              setStatus({ type: 'error', message: `${missingField[1]}을(를) 입력해주세요.` });
+              return;
+            }
+            if (!compactText(formData.birthYear)) {
+              setStatus({ type: 'error', message: '나이를 입력해주세요.' });
+              return;
+            }
+            if (!normalizeBirthYear(formData.birthYear)) {
+              setStatus({ type: 'error', message: '나이는 4자리 출생연도로 입력해주세요. 예: 1995' });
               return;
             }
             setLoading(true);
@@ -85,14 +141,45 @@
                 photo2Base64 = await convertToBase64(formData.photo2);
                 photo2Name = formData.photo2.name;
               }
+              const photoSummary = [photo1Name && `사진1: ${photo1Name}`, photo2Name && `사진2: ${photo2Name}`]
+                .filter(Boolean)
+                .join('\n');
+              const row = {
+                '사진2': photoSummary,
+                '이름': cleanedData.name,
+                '추천인': cleanedData.referrer,
+                '연락처': cleanedData.contact,
+                '나이(년생으로 통일)': cleanedData.birthYear,
+                '지역': cleanedData.location,
+                '직업': cleanedData.occupation,
+                '엠비티아이': cleanedData.mbti,
+                '자기소개': cleanedData.intro,
+                '선호스타일': cleanedData.preferredStyle
+              };
               
               await fetch(SCRIPT_URL, {
                 method: 'POST',
-                //mode: 'no-cors',
+                mode: 'no-cors',
                 headers: { 'Content-Type': 'text/plain; charset=utf-8' },
                 body: JSON.stringify({
-                  name: formData.name, age: formData.age, location: formData.location,
-                  occupation: formData.occupation, specs: formData.specs,
+                  ...row,
+                  columns: SHEET_COLUMNS,
+                  values: SHEET_COLUMNS.map(column => row[column] || ''),
+                  row,
+                  spreadsheetId: GOOGLE_SHEET_ID,
+                  spreadsheetUrl: GOOGLE_SHEET_URL,
+                  sheetName: GOOGLE_SHEET_NAME,
+                  name: cleanedData.name,
+                  referrer: cleanedData.referrer,
+                  contact: cleanedData.contact,
+                  birthYear: cleanedData.birthYear,
+                  age: cleanedData.birthYear,
+                  location: cleanedData.location,
+                  occupation: cleanedData.occupation,
+                  mbti: cleanedData.mbti,
+                  intro: cleanedData.intro,
+                  preferredStyle: cleanedData.preferredStyle,
+                  specs: `자기소개: ${cleanedData.intro}\n선호스타일: ${cleanedData.preferredStyle}`,
                   photo1Base64, photo1Name, photo2Base64, photo2Name,
                   timestamp: new Date().toISOString()
                 })
@@ -118,7 +205,7 @@
                     </div>
                     
                     <h1 className="text-4xl font-bold text-gray-800 mb-4">등록 완료</h1>
-                    <p className="text-xl text-gray-600 mb-8">프로필 받았슈 주선자한테 연락하겠소</p>
+                    <p className="text-xl text-gray-600 mb-8">프로필이 정상적으로 접수되었습니다.</p>
                     
                     <div className="bg-red-50 border-2 border-red-300 rounded-lg p-6 mb-6">
                       <div className="flex items-start gap-3">
@@ -126,29 +213,25 @@
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                         </svg>
                         <div className="text-left">
-                          <p className="text-red-800 font-bold text-lg mb-2"> 상대방한테 사진 보내기 전에 연락하겠삼</p>
+                          <p className="text-red-800 font-bold text-lg mb-2">상대방에게 전달하기 전에 먼저 확인하겠습니다.</p>
                           <p className="text-red-700 text-base font-semibold">
-                            개인정보 유출 시 삼전 퇴사 후 올해 성과급 전액으로 보상하겠음
+                            개인정보는 소개 목적 외에는 사용하지 않습니다.
                           </p>
                         </div>
                       </div>
                     </div>
 
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-                      <p className="text-gray-700 mb-4">📈</p>
-                      <a 
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:text-blue-800 underline font-medium text-base"
-                      >
-                        저장장소: 내 구글 드라이브랑 화성시 우리집 노트북
-                      </a>
+                      <p className="text-gray-700 mb-4">저장 컬럼</p>
+                      <p className="text-blue-800 font-medium text-base">
+                        사진2 / 이름 / 추천인 / 연락처 / 나이(년생으로 통일) / 지역 / 직업 / 엠비티아이 / 자기소개 / 선호스타일
+                      </p>
                     </div>
 
                     <button
                       onClick={() => {
                         setCurrentPage('form');
-                        setFormData({ name: '', age: '', location: '', occupation: '', specs: '', photo1: null, photo2: null });
+                        setFormData(createInitialFormData());
                         setPhotoPreview1(null);
                         setPhotoPreview2(null);
                         setStatus({ type: '', message: '' });
@@ -168,8 +251,8 @@
               <div className="max-w-2xl mx-auto">
                 <div className="bg-white rounded-2xl shadow-xl p-8">
                   <div className="text-center mb-8">
-                    <h1 className="text-3xl font-bold text-gray-800 mb-2">💕 소개팅 프로필 등록</h1>
-                    <p className="text-gray-600">어필하소</p>
+                    <h1 className="text-3xl font-bold text-gray-800 mb-2">소개팅 프로필 등록</h1>
+                    <p className="text-gray-600">필수 항목을 빠짐없이 입력해주세요.</p>
                   </div>
 
                   {status.message && (
@@ -217,47 +300,91 @@
                       <p className="text-sm text-gray-500 mt-3 text-center">(각 5MB 이하...저장공간 이슈ㅜ)</p>
                     </div>
 
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        이름(연락처) <span className="text-red-500">*</span>
-                      </label>
-                      <input type="text" name="name" value={formData.name} onChange={handleChange}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-400 focus:border-transparent outline-none"
-                        placeholder="이름이랑 연락처!!!제발!!!!인스타든 번호든!!!" />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                          이름 <span className="text-red-500">*</span>
+                        </label>
+                        <input type="text" name="name" value={formData.name} onChange={handleChange}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-400 focus:border-transparent outline-none"
+                          placeholder="홍길동" />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                          추천인 <span className="text-red-500">*</span>
+                        </label>
+                        <input type="text" name="referrer" value={formData.referrer} onChange={handleChange}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-400 focus:border-transparent outline-none"
+                          placeholder="추천인 이름" />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                          연락처 <span className="text-red-500">*</span>
+                        </label>
+                        <input type="text" name="contact" value={formData.contact} onChange={handleChange}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-400 focus:border-transparent outline-none"
+                          placeholder="전화번호 또는 인스타그램" />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                          나이(년생으로 통일) <span className="text-red-500">*</span>
+                        </label>
+                        <input type="text" inputMode="numeric" name="birthYear" value={formData.birthYear} onChange={handleChange}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-400 focus:border-transparent outline-none"
+                          placeholder="예: 1995" />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                          지역 <span className="text-red-500">*</span>
+                        </label>
+                        <input type="text" name="location" value={formData.location} onChange={handleChange}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-400 focus:border-transparent outline-none"
+                          placeholder="서울 강남" />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                          직업 <span className="text-red-500">*</span>
+                        </label>
+                        <input type="text" name="occupation" value={formData.occupation} onChange={handleChange}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-400 focus:border-transparent outline-none"
+                          placeholder="소프트웨어 엔지니어" />
+                      </div>
                     </div>
 
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        나이!!!!!!!!!몇년생? <span className="text-red-500">*</span>
+                        엠비티아이 <span className="text-red-500">*</span>
                       </label>
-                      <input type="number" name="age" value={formData.age} onChange={handleChange}
+                      <input type="text" name="mbti" value={formData.mbti} onChange={handleChange}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-400 focus:border-transparent outline-none"
-                        placeholder="28" min="20" max="100" />
+                        placeholder="예: ENFP" />
                     </div>
 
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        사는 곳 <span className="text-red-500">*</span>
+                        자기소개 <span className="text-red-500">*</span>
                       </label>
-                      <input type="text" name="location" value={formData.location} onChange={handleChange}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-400 focus:border-transparent outline-none"
-                        placeholder="어디사세유" />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        직업 <span className="text-red-500">*</span>
-                      </label>
-                      <input type="text" name="occupation" value={formData.occupation} onChange={handleChange}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-400 focus:border-transparent outline-none"
-                        placeholder="소프트웨어 엔지니어" />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2"> 자기소개랑 원하는 타입</label>
-                      <textarea name="specs" value={formData.specs} onChange={handleChange} rows="4"
+                      <textarea name="intro" value={formData.intro} onChange={handleChange} rows="4"
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-400 focus:border-transparent outline-none resize-none"
-                        placeholder="취미, 특기, MBTI, 학력, 키 등"></textarea>
+                        placeholder="성격, 취미, 관심사 등을 적어주세요."></textarea>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        선호스타일 <span className="text-red-500">*</span>
+                      </label>
+                      <textarea name="preferredStyle" value={formData.preferredStyle} onChange={handleChange} rows="4"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-400 focus:border-transparent outline-none resize-none"
+                        placeholder="선호하는 스타일을 적어주세요."></textarea>
                     </div>
 
                     <button onClick={handleSubmit} disabled={loading}
@@ -270,7 +397,7 @@
 
                   <div className="mt-6 p-4 bg-blue-50 rounded-lg">
                     <p className="text-sm text-blue-800">
-                      <strong>📝 피곤하다:</strong> 나 오늘 열시에 퇴근함ㅜ
+                      <strong>저장 순서:</strong> 사진2 / 이름 / 추천인 / 연락처 / 나이(년생으로 통일) / 지역 / 직업 / 엠비티아이 / 자기소개 / 선호스타일
                     </p>
                   </div>
                 </div>
